@@ -1,0 +1,17 @@
+{
+    "timestamp": "2026-03-03T23:45:12.000Z",
+    "url": "https://dashboard.iaiolabs.com/settings",
+    "metadata": {
+        "title": "Button click fails on settings page",
+        "notes": "When I try to save the user profile, nothing happens. The UI stays frozen.",
+        "dom": "<div id=\"app-root\">\n  <header class=\"nav-header\">\n    <nav>\n      <ul>\n        <li>Home</li>\n        <li class=\"active\">Settings</li>\n      </ul>\n    </nav>\n  </header>\n  <main class=\"container\">\n    <section class=\"profile-settings\">\n      <h2>Account Settings</h2>\n      <form id=\"settings-form\">\n        <div class=\"field-group\">\n          <label for=\"username\">Username</label>\n          <input type=\"text\" id=\"username\" value=\"lalo_dev_leader\" />\n        </div>\n        <div class=\"field-group\">\n          <label for=\"email\">Email</label>\n          <input type=\"email\" id=\"email\" value=\"lalo@iaiolabs.com\" disabled />\n        </div>\n        <div class=\"actions\">\n          <button type=\"submit\" id=\"save-btn\" class=\"btn-primary glow\">Save Changes</button>\n          <button type=\"button\" id=\"cancel-btn\" class=\"btn-secondary\">Cancel</button>\n        </div>\n      </form>\n    </section>\n    <aside class=\"sidebar\">\n      <div class=\"alert warning\">\n        <p>Unsaved changes detected</p>\n      </div>\n    </aside>\n  </main>\n  <footer class=\"footer-minimal\">\n    <span>Powered by iaio Labs</span>\n  </footer>\n</div>",
+        "consoleLogs": "[11:45:10] ERROR: Uncaught TypeError: Cannot read properties of undefined (reading 'data')\n    at handleSubmit (settings.js:42:15)\n    at HTMLButtonElement.onclick (settings.js:104:1)\n[11:45:11] WARN: Deprecated API call used: /v1/user/update",
+        "networkLogs": "POST https://api.iaiolabs.com/v2/user/update -> 500 Internal Server Error (Duration: 420ms)\nGET https://api.iaiolabs.com/v1/config -> 200 OK (Duration: 120ms)",
+        "systemInfo": {
+            "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+            "platform": "macOS",
+            "language": "en-US",
+            "resolution": "1920x1080"
+        }
+    }
+}

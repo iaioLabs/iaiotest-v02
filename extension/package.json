@@ -1,0 +1,25 @@
+{
+  "name": "iaio-test-extension-v2",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build --config vite.config.ts && vite build --config vite.bg.config.ts",
+    "build:content": "vite build --config vite.config.ts",
+    "build:bg": "vite build --config vite.bg.config.ts",
+    "build:viewer": "vite build --config vite.viewer.config.ts",
+    "dev": "npm run build"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "@vitejs/plugin-react": "^4.0.3",
+    "typescript": "^5.0.2",
+    "vite": "^4.4.5"
+  }
+}

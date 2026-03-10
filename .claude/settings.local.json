@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build)",
+      "Bash(curl -s http://localhost:3000/health)",
+      "Bash(xargs -I{} sh -c 'python3 -c \"\" import json, sys with open\\(\\\\\"\"/Users/lalomartinjodor/Desktop/iaioLabs/iaioTest-v02/backend/data/reports/{}\\\\\"\"\\) as f: d = json.load\\(f\\) ce = len\\(d.get\\(\\\\\"\"consoleEntries\\\\\"\",[]\\)\\) ne = len\\(d.get\\(\\\\\"\"networkEntries\\\\\"\",[]\\)\\) cl = len\\(d.get\\(\\\\\"\"consoleLogs\\\\\"\",\\\\\"\"\\\\\"\"\\)\\) print\\(f\\\\\"\"{}: consoleEntries={ce} networkEntries={ne} consoleLogs_chars={cl}\\\\\"\"\\) \"\"')",
+      "Bash(for f in /Users/lalomartinjodor/Desktop/iaioLabs/iaioTest-v02/backend/data/reports/*.json)",
+      "Bash(do)",
+      "Bash(node -e \":*)",
+      "Bash(done)",
+      "Bash(curl -v http://localhost:3000/health)"
+    ]
+  }
+}

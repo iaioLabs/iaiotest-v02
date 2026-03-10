@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iaio Test | Interactive Inspector Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Space+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050810;
+      --card-bg: rgba(8, 13, 26, 0.8);
+      --border: rgba(0, 240, 255, 0.15);
+      --cyan: #00f0ff;
+      --violet: #7b5cff;
+      --text: #e8eaf6;
+      --muted: #5a6080;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      padding: 24px 40px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(5, 8, 16, 0.8);
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+    }
+
+    .brand-text {
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-size: 18px;
+    }
+
+    .demo-tag {
+      font-size: 10px;
+      background: rgba(0, 240, 255, 0.1);
+      color: var(--cyan);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+    }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      padding: 24px;
+      gap: 24px;
+      overflow: hidden;
+    }
+
+    .mock-info {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    .inspector-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .inspector-header {
+      padding: 16px 24px;
+      background: rgba(0, 240, 255, 0.03);
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #inspector-root {
+      flex: 1;
+      padding: 20px;
+      overflow: auto;
+      font-family: 'Space Mono', monospace;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 14px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .value {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    pre {
+      background: #000;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      color: var(--violet);
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Minimalist Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 240, 255, 0.1); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0, 240, 255, 0.2); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo-circle"></div>
+      <div class="brand-text">iaio Test</div>
+      <div class="demo-tag">MOCK WORKFLOW</div>
+    </div>
+    <div style="font-size: 12px; color: var(--muted)">Precision Inspector Demo v2.0</div>
+  </header>
+
+  <main>
+    <div class="mock-info">
+      <div>
+        <div class="label">Incident URL</div>
+        <div class="value" id="mock-url">Loading...</div>
+      </div>
+      <div>
+        <div class="label">Issue Title</div>
+        <div class="value" id="mock-title">Loading...</div>
+      </div>
+      <div>
+        <div class="label">Console Errors</div>
+        <pre id="mock-console"></pre>
+      </div>
+      <div>
+        <div class="label">Network Context</div>
+        <pre id="mock-network" style="color: var(--cyan)"></pre>
+      </div>
+    </div>
+
+    <div class="inspector-container">
+      <div class="inspector-header">
+        <span>⧉</span> Interactive DOM Inspector
+      </div>
+      <div id="inspector-root">
+        <!-- The Inspector will be rendered here -->
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    // Mock simulation: Instead of React (which needs complex bundling for a simple standalone),
+    // we use a vanilla JS implementation of the same logic to demonstrate the tree.
+    // In a real dev setup, we'd use Vite to serve the actual React component.
+    
+    const C = {
+      tag: '#00f0ff',
+      attr: '#7b5cff',
+      value: '#ff3cac',
+      text: '#e8eaf6',
+      muted: '#5a6080',
+      bg: '#050810',
+    }
+
+    async function loadMockData() {
+      // In a real server environment, we'd fetch this.
+      // For this demo file, we'll embed the relative path expectation.
+      try {
+        const response = await fetch('../../backend/src/dev/mock-bug-report.json');
+        const data = await response.json();
+        
+        document.getElementById('mock-url').textContent = data.url;
+        document.getElementById('mock-title').textContent = data.metadata.title;
+        document.getElementById('mock-console').textContent = data.metadata.consoleLogs;
+        document.getElementById('mock-network').textContent = data.metadata.networkLogs;
+        
+        renderInspector(data.metadata.dom, document.getElementById('inspector-root'));
+      } catch (e) {
+        console.error("Failed to fetch mock data. Ensure the server is running or paths are correct.", e);
+        document.getElementById('inspector-root').innerHTML = `<div style="color: #ff3cac">Failed to load mock data. Run from root with local server.</div>`;
+      }
+    }
+
+    function renderInspector(domString, root) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(domString, 'text/html');
+      const body = doc.body;
+      
+      root.innerHTML = '';
+      Array.from(body.childNodes).forEach(node => {
+        root.appendChild(createNodeElement(node, 0));
+      });
+    }
+
+    function createNodeElement(node, depth) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent.trim();
+        if (!text) return document.createTextNode('');
+        const div = document.createElement('div');
+        div.style.paddingLeft = '20px';
+        div.style.color = C.text;
+        div.style.fontSize = '12px';
+        div.style.opacity = '0.8';
+        div.style.margin = '2px 0';
+        div.textContent = text;
+        return div;
+      }
+
+      if (node.nodeType !== Node.ELEMENT_NODE) return document.createTextNode('');
+
+      const tagName = node.tagName.toLowerCase();
+      const attributes = Array.from(node.attributes);
+      const hasChildren = node.childNodes.length > 0;
+
+      const container = document.createElement('div');
+      container.style.paddingLeft = depth === 0 ? '0' : '16px';
+      container.style.fontFamily = "'Space Mono', monospace";
+
+      const header = document.createElement('div');
+      header.style.display = 'flex';
+      header.style.alignItems = 'center';
+      header.style.cursor = hasChildren ? 'pointer' : 'default';
+      header.style.fontSize = '12px';
+      header.style.padding = '2px 4px';
+      header.style.borderRadius = '4px';
+      header.style.transition = 'background 0.2s';
+
+      if (hasChildren) {
+        const toggle = document.createElement('span');
+        toggle.textContent = '▶';
+        toggle.style.display = 'inline-block';
+        toggle.style.width = '12px';
+        toggle.style.marginRight = '4px';
+        toggle.style.color = C.muted;
+        toggle.style.fontSize = '10px';
+        toggle.style.transition = 'transform 0.2s';
+        header.appendChild(toggle);
+      } else {
+        const spacer = document.createElement('span');
+        spacer.style.width = '16px';
+        header.appendChild(spacer);
+      }
+
+      const openTag = document.createElement('span');
+      openTag.style.color = C.tag;
+      openTag.textContent = `<${tagName}`;
+      header.appendChild(openTag);
+
+      attributes.forEach(attr => {
+        const attrSpan = document.createElement('span');
+        attrSpan.style.color = C.attr;
+        attrSpan.style.marginLeft = '8px';
+        attrSpan.textContent = ` ${attr.name}`;
+        header.appendChild(attrSpan);
+
+        const eq = document.createElement('span');
+        eq.style.color = C.tag;
+        eq.textContent = '=';
+        header.appendChild(eq);
+
+        const val = document.createElement('span');
+        val.style.color = C.value;
+        val.textContent = `"${attr.value}"`;
+        header.appendChild(val);
+      });
+
+      const closeTagOpen = document.createElement('span');
+      closeTagOpen.style.color = C.tag;
+      closeTagOpen.textContent = '>';
+      header.appendChild(closeTagOpen);
+
+      const childrenContainer = document.createElement('div');
+      childrenContainer.style.borderLeft = '1px solid rgba(90,96,128,0.2)';
+      childrenContainer.style.marginLeft = '10px';
+      childrenContainer.style.display = depth < 1 ? 'block' : 'none'; // Auto expand first level
+
+      if (hasChildren && depth >= 1) {
+        const dots = document.createElement('span');
+        dots.textContent = '...';
+        dots.style.color = C.muted;
+        dots.style.marginLeft = '4px';
+        dots.style.display = 'inline';
+        header.appendChild(dots);
+        
+        const closeTagInline = document.createElement('span');
+        closeTagInline.style.color = C.tag;
+        closeTagInline.textContent = `</${tagName}>`;
+        header.appendChild(closeTagInline);
+      }
+
+      if (hasChildren) {
+        header.addEventListener('click', () => {
+          const isHidden = childrenContainer.style.display === 'none';
+          childrenContainer.style.display = isHidden ? 'block' : 'none';
+          header.querySelector('span').style.transform = isHidden ? 'rotate(90deg)' : 'none';
+          
+          // Toggle the inline closing tag if needed
+          const dots = header.querySelector('span:nth-last-child(2)');
+          const inlineClose = header.querySelector('span:last-child');
+          if (dots && inlineClose && inlineClose.textContent.includes('/')) {
+            dots.style.display = isHidden ? 'none' : 'inline';
+            inlineClose.style.display = isHidden ? 'none' : 'inline';
+          }
+        });
+        
+        if (depth < 1) {
+          header.querySelector('span').style.transform = 'rotate(90deg)';
+        }
+      }
+
+      container.appendChild(header);
+
+      Array.from(node.childNodes).forEach(child => {
+        childrenContainer.appendChild(createNodeElement(child, depth + 1));
+      });
+      container.appendChild(childrenContainer);
+
+      const footer = document.createElement('div');
+      footer.style.paddingLeft = '16px';
+      footer.style.fontSize = '12px';
+      footer.style.color = C.tag;
+      footer.textContent = `</${tagName}>`;
+      footer.style.display = childrenContainer.style.display;
+      
+      // Sync footer visibility with children
+      const observer = new MutationObserver(() => {
+        footer.style.display = childrenContainer.style.display;
+      });
+      observer.observe(childrenContainer, { attributes: true, attributeFilter: ['style'] });
+      
+      container.appendChild(footer);
+
+      return container;
+    }
+
+    loadMockData();
+  </script>
+</body>
+</html>
