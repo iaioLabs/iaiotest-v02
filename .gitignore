@@ -54,3 +54,4 @@ eslintcache
 
 # Optional REPL/debug logs
 .node_repl_history
+backend/data/uploads/*.png
