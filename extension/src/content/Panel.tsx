@@ -15,6 +15,7 @@
 
 import { useState, useEffect } from 'react'
 import type { LogEntry, NetworkEntry } from './index'
+import ImageEditor from './ImageEditor'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -56,26 +57,40 @@ export default function Panel({ metadata, onClose }: PanelProps) {
   const [screenshot, setScreenshot] = useState<string | null>(null)
   const [aiSuggestion, setAiSuggestion] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [sendMethod, setSendMethod] = useState<'link' | 'email' | 'jira' | 'github' | 'azure' | 'trello'>('link')
   const [email, setEmail] = useState('')
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [visible, setVisible] = useState(false)
+  const [isEditorOpen, setIsEditorOpen] = useState(false)
 
   // Mount animation
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
   // Load saved email
   useEffect(() => {
-    chrome.storage.sync.get(EMAIL_STORAGE_KEY, (result) => {
+    chrome.storage.local.get(EMAIL_STORAGE_KEY, (result) => {
       if (result[EMAIL_STORAGE_KEY]) setEmail(result[EMAIL_STORAGE_KEY])
     })
   }, [])
 
   // Capture screenshot → trigger AI analysis
   useEffect(() => {
+    const rootEl = document.getElementById('iaio-panel-root');
+    if (rootEl) {
+      rootEl.style.opacity = '0';
+      rootEl.style.visibility = 'hidden';
+    }
+
     chrome.runtime.sendMessage({ action: 'captureScreenshot' }, (response) => {
+      if (rootEl) {
+        rootEl.style.opacity = '1';
+        rootEl.style.visibility = 'visible';
+      }
+
       if (response?.success && response.screenshot) {
         setScreenshot(response.screenshot)
         runAIAnalysis(response.screenshot)
@@ -102,13 +117,13 @@ export default function Panel({ metadata, onClose }: PanelProps) {
       const data = await res.json()
       if (!res.ok) {
         console.error('[iaio] /analyze-bug error', res.status, data)
-        setAiSuggestion('AI analysis failed — is the backend running?')
+        setAiSuggestion('AI Analysis is warming up...')
         return
       }
       setAiSuggestion(data.suggestion ?? 'No suggestion returned.')
     } catch (err) {
       console.error('[iaio] /analyze-bug network error', err)
-      setAiSuggestion('AI analysis unavailable — is the backend running?')
+      setAiSuggestion('AI Analysis is warming up...')
     } finally {
       setIsAnalyzing(false)
     }
@@ -120,13 +135,16 @@ export default function Panel({ metadata, onClose }: PanelProps) {
   }
 
   function handleEmailBlur() {
-    if (email.trim()) chrome.storage.sync.set({ [EMAIL_STORAGE_KEY]: email.trim() })
+    if (email.trim()) chrome.storage.local.set({ [EMAIL_STORAGE_KEY]: email.trim() })
   }
 
   async function handleSubmit() {
-    if (!title.trim() || !email.trim()) return
+    if (!title.trim()) return
+    if (sendMethod === 'email' && !email.trim()) return
+    
     setIsSubmitting(true)
     setStatus(null)
+    setGeneratedLink(null)
 
     try {
       console.log('[iaio Test] Sending metadata to backend:', {
@@ -138,7 +156,7 @@ export default function Panel({ metadata, onClose }: PanelProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: email.trim(),
+          email: sendMethod === 'email' ? email.trim() : 'direct@iaiolabs.com',
           title,
           notes,
           aiSuggestion,
@@ -162,8 +180,13 @@ export default function Panel({ metadata, onClose }: PanelProps) {
       console.info('[iaio] /send-report →', res.status, data)
 
       if (data.success) {
-        setStatus({ type: 'success', message: '¡Reporte enviado! Revisá tu bandeja 📧' })
-        setTimeout(handleClose, 2200)
+        if (sendMethod === 'link' && data.reportUrl) {
+          setGeneratedLink(data.reportUrl)
+          setStatus({ type: 'success', message: '¡Link generado! Podés copiarlo o abrirlo.' })
+        } else {
+          setStatus({ type: 'success', message: '¡Reporte enviado! Revisá tu bandeja 📧' })
+          setTimeout(handleClose, 2200)
+        }
       } else {
         setStatus({ type: 'error', message: mapError(data.error, data.code) })
       }
@@ -175,7 +198,7 @@ export default function Panel({ metadata, onClose }: PanelProps) {
     }
   }
 
-  const canSubmit = title.trim().length > 0 && email.trim().length > 0 && !isSubmitting
+  const canSubmit = title.trim().length > 0 && (sendMethod !== 'email' || email.trim().length > 0) && !isSubmitting
 
   let hostname = ''
   try { hostname = new URL(metadata.url).hostname } catch { hostname = metadata.url }
@@ -184,6 +207,13 @@ export default function Panel({ metadata, onClose }: PanelProps) {
 
   return (
     <>
+      {isEditorOpen && screenshot && (
+        <ImageEditor
+          screenshot={screenshot}
+          onClose={() => setIsEditorOpen(false)}
+          onSave={(editedBase64) => setScreenshot(editedBase64)}
+        />
+      )}
       <style>{`
         @keyframes iaio-spin {
           to { transform: rotate(360deg); }
@@ -224,8 +254,11 @@ export default function Panel({ metadata, onClose }: PanelProps) {
           borderRadius: '16px',
           overflow: 'hidden',
           boxShadow: '0 0 0 1px rgba(0,240,255,0.04), 0 0 48px rgba(0,240,255,0.06), 0 24px 64px rgba(0,0,0,0.7)',
-          transform: visible ? 'translateY(0) scale(1)' : 'translateY(16px) scale(0.97)',
-          opacity: visible ? 1 : 0,
+          transform: visible
+            ? (isEditorOpen ? 'translateY(20px) scale(0.95)' : 'translateY(0) scale(1)')
+            : 'translateY(16px) scale(0.97)',
+          opacity: visible ? (isEditorOpen ? 0.1 : 1) : 0,
+          pointerEvents: isEditorOpen ? 'none' : 'auto',
           transition: 'transform 0.28s cubic-bezier(0.175,0.885,0.32,1.275), opacity 0.22s ease',
         }}
       >
@@ -280,22 +313,10 @@ export default function Panel({ metadata, onClose }: PanelProps) {
           display: 'flex', flexDirection: 'column', gap: '14px',
         }}>
           {/* Screenshot */}
-          <div style={{
-            borderRadius: '10px', overflow: 'hidden',
-            border: `1px solid ${C.border}`, background: C.bg,
-            aspectRatio: '16/9', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}>
-            {screenshot ? (
-              <img src={screenshot} alt="Page screenshot"
-                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', color: C.muted, fontSize: '12px' }}>
-                <Spinner color={C.cyan} size={20} />
-                <span>Capturing screenshot…</span>
-              </div>
-            )}
-          </div>
+          <EvidenceSnapshotPreview
+            screenshot={screenshot}
+            onClick={() => screenshot && setIsEditorOpen(true)}
+          />
 
           {/* AI Analysis */}
           <div>
@@ -332,17 +353,37 @@ export default function Panel({ metadata, onClose }: PanelProps) {
             <FieldLabel>Finalize Report</FieldLabel>
           </div>
 
-          {/* Email */}
+          {/* Send Method */}
           <div>
-            <FieldLabel>Send report to *</FieldLabel>
-            <input
-              type="email" value={email}
-              onChange={e => setEmail(e.target.value)}
-              onBlur={handleEmailBlur}
-              placeholder="you@company.com"
-              style={inputBaseStyle}
+            <FieldLabel>SEND REPORT TO *</FieldLabel>
+            <select
+              value={sendMethod}
+              onChange={e => setSendMethod(e.target.value as any)}
+              style={{ ...inputBaseStyle, marginBottom: sendMethod === 'email' ? '8px' : '0', cursor: 'pointer' }}
               onFocus={e => (e.target.style.borderColor = C.cyan)}
-            />
+              onBlur={e => (e.target.style.borderColor = C.border)}
+            >
+              <option value="link">Direct Link (Open in Browser)</option>
+              <option value="email">Email Address</option>
+              <option value="jira" disabled>Jira (Soon)</option>
+              <option value="github" disabled>GitHub (Soon)</option>
+              <option value="azure" disabled>Azure (Soon)</option>
+              <option value="trello" disabled>Trello (Soon)</option>
+            </select>
+            
+            {sendMethod === 'email' && (
+              <input
+                type="email" value={email}
+                onChange={e => setEmail(e.target.value)}
+                onBlur={e => {
+                  handleEmailBlur();
+                  e.target.style.borderColor = C.border;
+                }}
+                placeholder="you@company.com"
+                style={inputBaseStyle}
+                onFocus={e => (e.target.style.borderColor = C.cyan)}
+              />
+            )}
           </div>
 
           {/* Title */}
@@ -399,32 +440,68 @@ export default function Panel({ metadata, onClose }: PanelProps) {
             </div>
           )}
 
-          <button
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            style={{
-              padding: '12px 16px', borderRadius: '10px', border: 'none',
-              background: canSubmit
-                ? `linear-gradient(135deg, ${C.cyan} 0%, ${C.violet} 100%)`
-                : 'rgba(0,240,255,0.07)',
-              color: canSubmit ? '#000' : C.muted,
-              fontWeight: 700, fontSize: '14px',
-              fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-              letterSpacing: '0.02em',
-              cursor: canSubmit ? 'pointer' : 'not-allowed',
-              transition: 'opacity 0.2s',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-              boxShadow: canSubmit ? '0 0 20px rgba(0,240,255,0.2)' : 'none',
-            }}
-            onMouseOver={e => { if (canSubmit) e.currentTarget.style.opacity = '0.88' }}
-            onMouseOut={e => { e.currentTarget.style.opacity = '1' }}
-          >
-            {isSubmitting ? (
-              <><Spinner color="#000" size={14} />Sending report…</>
-            ) : (
-              'Send Report →'
-            )}
-          </button>
+          {generatedLink ? (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(generatedLink);
+                  setStatus({ type: 'success', message: '¡Copiado al portapapeles! 📋' });
+                }}
+                style={{
+                  flex: 1, padding: '12px 16px', borderRadius: '10px', border: `1px solid ${C.cyan}`,
+                  background: 'transparent', color: C.cyan,
+                  fontWeight: 700, fontSize: '14px',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                  cursor: 'pointer', transition: 'background 0.2s',
+                }}
+                onMouseOver={e => e.currentTarget.style.background = 'rgba(0,240,255,0.1)'}
+                onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+              >
+                Copiar
+              </button>
+              <button
+                onClick={() => window.open(generatedLink, '_blank')}
+                style={{
+                  flex: 1, padding: '12px 16px', borderRadius: '10px', border: 'none',
+                  background: `linear-gradient(135deg, ${C.cyan} 0%, ${C.violet} 100%)`,
+                  color: '#000', fontWeight: 700, fontSize: '14px',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                  cursor: 'pointer', transition: 'opacity 0.2s',
+                  boxShadow: '0 0 20px rgba(0,240,255,0.2)',
+                }}
+                onMouseOver={e => e.currentTarget.style.opacity = '0.88'}
+                onMouseOut={e => e.currentTarget.style.opacity = '1'}
+              >
+                Abrir →
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={!canSubmit}
+              style={{
+                padding: '12px 16px', borderRadius: '10px', border: 'none',
+                background: canSubmit
+                  ? `linear-gradient(135deg, ${C.cyan} 0%, ${C.violet} 100%)`
+                  : 'rgba(0,240,255,0.07)',
+                color: canSubmit ? '#000' : C.muted,
+                fontWeight: 700, fontSize: '14px',
+                fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                cursor: canSubmit ? 'pointer' : 'not-allowed',
+                transition: 'opacity 0.2s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                boxShadow: canSubmit ? '0 0 20px rgba(0,240,255,0.2)' : 'none',
+              }}
+              onMouseOver={e => { if (canSubmit) e.currentTarget.style.opacity = '0.88' }}
+              onMouseOut={e => { e.currentTarget.style.opacity = '1' }}
+            >
+              {isSubmitting ? (
+                <><Spinner color="#000" size={14} />{sendMethod === 'link' ? 'Generando...' : 'Enviando...'}</>
+              ) : (
+                sendMethod === 'link' ? 'Generate Link →' : 'Send Report →'
+              )}
+            </button>
+          )}
         </div>
       </div>
     </>
@@ -444,6 +521,58 @@ function mapError(error?: string, code?: string): string {
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+function EvidenceSnapshotPreview({ screenshot, onClick }: { screenshot: string | null, onClick: () => void }) {
+  return (
+    <div
+      onClick={screenshot ? onClick : undefined}
+      style={{
+        borderRadius: '10px', overflow: 'hidden',
+        border: `1px solid ${C.border}`, background: C.bg,
+        aspectRatio: '16/9', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        cursor: screenshot ? 'pointer' : 'default',
+        position: 'relative',
+      }}>
+      {screenshot ? (
+        <>
+          <img src={screenshot} alt="Page screenshot"
+            style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+          {/* Hover Overlay */}
+          <div
+            className="snapshot-overlay"
+            style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0, 240, 255, 0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              opacity: 0, transition: 'opacity 0.2s',
+              backdropFilter: 'blur(2px)',
+            }}
+          >
+            <span style={{
+              background: C.surface,
+              padding: '8px 16px', borderRadius: '20px',
+              border: `1px solid ${C.cyan}`,
+              color: C.cyan, fontSize: '12px', fontWeight: 600, letterSpacing: '0.05em',
+              boxShadow: '0 0 10px rgba(0,240,255,0.2)',
+            }}>
+              Click to Edit
+            </span>
+          </div>
+        </>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', color: C.muted, fontSize: '12px' }}>
+          <Spinner color={C.cyan} size={20} />
+          <span>Capturing screenshot…</span>
+        </div>
+      )}
+      <style>{`
+        .snapshot-overlay { opacity: 0; }
+        div:hover > .snapshot-overlay { opacity: 1; }
+      `}</style>
+    </div>
+  )
+}
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
