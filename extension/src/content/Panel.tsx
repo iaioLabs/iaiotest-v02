@@ -4,7 +4,7 @@
  * Floating React panel injected into the page.
  * Flow: screenshot → AI analysis → fill form → Send Report (email)
  *
- * Auth: none (open endpoints for now — TODO: Bearer token when multi-team)
+ * Auth: none (open endpoints for now)
  *
  * The DevTools data (console, network, DOM) is captured and sent
  * in the report payload but NOT displayed here — it lives in the
@@ -21,6 +21,7 @@ import ImageEditor from './ImageEditor'
 
 interface Metadata {
   url: string
+  title: string
   resolution: string
   consoleLogs: string
   networkLogs: string
@@ -112,17 +113,16 @@ export default function Panel({ metadata, onClose }: PanelProps) {
           consoleLogs: metadata.consoleLogs,
           networkLogs: metadata.networkLogs,
           url: metadata.url,
+          title: metadata.title,
         }),
       })
       const data = await res.json()
       if (!res.ok) {
-        console.error('[iaio] /analyze-bug error', res.status, data)
         setAiSuggestion('AI Analysis is warming up...')
         return
       }
       setAiSuggestion(data.suggestion ?? 'No suggestion returned.')
     } catch (err) {
-      console.error('[iaio] /analyze-bug network error', err)
       setAiSuggestion('AI Analysis is warming up...')
     } finally {
       setIsAnalyzing(false)
@@ -147,11 +147,6 @@ export default function Panel({ metadata, onClose }: PanelProps) {
     setGeneratedLink(null)
 
     try {
-      console.log('[iaio Test] Sending metadata to backend:', {
-        consoleLogs: metadata.consoleLogs,
-        consoleEntries: metadata.consoleEntries,
-        networkEntries: metadata.networkEntries
-      });
       const res = await fetch(`${BACKEND}/send-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -162,6 +157,7 @@ export default function Panel({ metadata, onClose }: PanelProps) {
           aiSuggestion,
           screenshotBase64: screenshot,
           url: metadata.url,
+          title: metadata.title || title,
           resolution: metadata.resolution,
           consoleLogs: metadata.consoleLogs,
           networkLogs: metadata.networkLogs,
@@ -177,7 +173,6 @@ export default function Panel({ metadata, onClose }: PanelProps) {
       })
 
       const data = await res.json()
-      console.info('[iaio] /send-report →', res.status, data)
 
       if (data.success) {
         if (sendMethod === 'link' && data.reportUrl) {
@@ -191,7 +186,6 @@ export default function Panel({ metadata, onClose }: PanelProps) {
         setStatus({ type: 'error', message: mapError(data.error, data.code) })
       }
     } catch (err) {
-      console.error('[iaio] /send-report network error', err)
       setStatus({ type: 'error', message: 'Sin conexión — verificá tu internet' })
     } finally {
       setIsSubmitting(false)
@@ -262,6 +256,21 @@ export default function Panel({ metadata, onClose }: PanelProps) {
           transition: 'transform 0.28s cubic-bezier(0.175,0.885,0.32,1.275), opacity 0.22s ease',
         }}
       >
+        {/* ── Dev Mode Badge ── */}
+        <div style={{
+          background: '#ffeb3b',
+          color: '#000',
+          fontSize: '10px',
+          fontWeight: 800,
+          textAlign: 'center',
+          padding: '4px 0',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          borderBottom: '1px solid rgba(0,0,0,0.1)',
+        }}>
+          [ DEV MODE v2.3.0 ]
+        </div>
+
         {/* ── Header ── */}
         <div style={{
           padding: '14px 18px',
@@ -273,11 +282,14 @@ export default function Panel({ metadata, onClose }: PanelProps) {
           flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: '8px', height: '8px', borderRadius: '50%',
-              background: C.cyan, boxShadow: `0 0 10px ${C.cyan}`,
-              animation: 'iaio-pulse 2s ease-in-out infinite',
-            }} />
+            <svg viewBox="0 0 100 100" style={{ width: '18px', height: '18px' }}>
+              <g>
+                <line x1="10" y1="40" x2="40" y2="40" stroke="#64748B" stroke-width="8" stroke-linecap="round" />
+                <line x1="5" y1="55" x2="35" y2="55" stroke="#7C3AED" stroke-width="8" stroke-linecap="round" />
+                <line x1="10" y1="70" x2="40" y2="70" stroke="#64748B" stroke-width="8" stroke-linecap="round" />
+              </g>
+              <path d="M45 55 L60 70 L90 30" stroke="#10B981" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
             <span style={{
               fontSize: '14px', fontWeight: 700, letterSpacing: '0.06em',
               background: `linear-gradient(135deg, ${C.cyan} 0%, ${C.violet} 100%)`,
@@ -291,7 +303,7 @@ export default function Panel({ metadata, onClose }: PanelProps) {
               padding: '2px 8px', borderRadius: '10px',
               border: `1px solid ${C.border}`, letterSpacing: '0.04em',
             }}>
-              v2.0
+              v2.3
             </span>
           </div>
           <button

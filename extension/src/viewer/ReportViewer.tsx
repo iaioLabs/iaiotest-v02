@@ -78,8 +78,18 @@ const ReportViewer: React.FC = () => {
                     </div>
 
                     <div style={{ marginBottom: '20px' }}>
-                        <div style={{ fontSize: '10px', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>AI Hypothesis</div>
-                        <div style={{ fontSize: '12px', color: C.accent, lineHeight: '1.6', background: 'rgba(0, 240, 255, 0.05)', padding: '12px', borderRadius: '4px', border: `1px solid rgba(0, 240, 255, 0.1)` }}>
+                        <div style={{ fontSize: '10px', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>AI Hypothesis & Repro Steps</div>
+                        <div style={{ 
+                            fontSize: '12px', 
+                            color: C.accent, 
+                            lineHeight: '1.7', 
+                            background: 'rgba(0, 240, 255, 0.03)', 
+                            padding: '16px', 
+                            borderRadius: '8px', 
+                            border: `1px solid rgba(0, 240, 255, 0.1)`,
+                            whiteSpace: 'pre-wrap',
+                            fontFamily: "'Space Mono', monospace"
+                        }}>
                             {report.aiSuggestion || "No AI suggestion available."}
                         </div>
                     </div>
