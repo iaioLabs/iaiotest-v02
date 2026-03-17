@@ -7,7 +7,9 @@
     "activeTab",
     "scripting",
     "storage",
-    "tabs"
+    "tabs",
+    "identity",
+    "identity.email"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -51,5 +53,12 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
+  },
+  "oauth2": {
+    "client_id": "752859870848-b2clugscrhq6rqtmd5hdmf0rv592caha.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile"
+    ]
   }
 }

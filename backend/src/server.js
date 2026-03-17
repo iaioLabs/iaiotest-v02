@@ -86,14 +86,14 @@ app.get('/health', async (_req, res) => {
 // ─── AI Bug Analysis ──────────────────────────────────────────────────────────
 
 app.post('/analyze-bug', analyzeLimiter, async (req, res) => {
-  const { screenshot, consoleLogs, networkLogs, url, title } = req.body
+  const { screenshot, consoleLogs, networkLogs, url } = req.body
 
   if (!url) {
     return res.status(400).json({ success: false, error: 'url is required' })
   }
 
   try {
-    const suggestion = await analyzeBug({ screenshot, consoleLogs, networkLogs, url, title })
+    const suggestion = await analyzeBug({ screenshot, consoleLogs, networkLogs, url })
     res.json({ success: true, suggestion })
   } catch (error) {
     console.error('[/analyze-bug]', error.message)

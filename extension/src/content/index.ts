@@ -60,7 +60,6 @@ window.addEventListener('message', (event) => {
 function collectMetadata() {
   return {
     url: window.location.href,
-    title: document.title,
     resolution: `${window.screen.width}x${window.screen.height}`,
     // Strings for AI analysis (error + warn only, failed network only)
     consoleLogs: logBuffer

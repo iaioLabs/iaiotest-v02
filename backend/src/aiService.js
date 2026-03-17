@@ -39,7 +39,6 @@ async function analyzeBug({ screenshot, consoleLogs, networkLogs, url }) {
 
   const prompt = `You are a senior full-stack engineer doing a quick bug triage.
 
-**Page Title:** ${params.title || 'Unknown'}
 **Page URL:** ${url}
 
 **Console Errors:**
@@ -54,10 +53,9 @@ Respond with a focused bug report in exactly this structure (use plain text, no 
 
 What's broken: <1 sentence describing the visible or logged problem>
 Probable cause: <most likely technical root cause, be specific>
-Steps to Reproduce: <deduce the logical steps (1, 2, 3...) the user took based on URL, title, and logs>
 Suggested fix: <concrete actionable step for the developer>
 
-Keep the total response under 150 words. No preamble.`
+Keep the total response under 120 words. No preamble.`
 
   content.push({ type: 'text', text: prompt })
 

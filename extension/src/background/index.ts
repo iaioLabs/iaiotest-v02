@@ -37,5 +37,45 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     })()
 
     return true // Keep channel open for async response
+  } else if (request.action === 'googleLogin') {
+    chrome.identity.getAuthToken({ interactive: true }, async (token) => {
+      if (chrome.runtime.lastError || !token) {
+        sendResponse({ success: false, error: chrome.runtime.lastError?.message || 'Failed to get auth token' });
+        return;
+      }
+
+      try {
+        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const userInfo = await response.json();
+
+        if (!userInfo.email) {
+          sendResponse({ success: false, error: 'Could not retrieve user email' });
+          return;
+        }
+
+        sendResponse({
+          success: true,
+          session: {
+            email: userInfo.email,
+            name: userInfo.name || userInfo.given_name || 'User',
+            token: token
+          }
+        });
+      } catch (err) {
+        sendResponse({ success: false, error: err instanceof Error ? err.message : 'Failed to fetch user info' });
+      }
+    });
+    return true;
+  } else if (request.action === 'googleLogout') {
+    if (request.token) {
+      chrome.identity.removeCachedAuthToken({ token: request.token }, () => {
+        sendResponse({ success: true });
+      });
+      return true;
+    }
+    sendResponse({ success: true });
+    return false;
   }
 })
