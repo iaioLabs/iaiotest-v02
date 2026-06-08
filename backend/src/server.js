@@ -86,19 +86,8 @@ app.get('/health', async (_req, res) => {
 // ─── AI Bug Analysis ──────────────────────────────────────────────────────────
 
 app.post('/analyze-bug', analyzeLimiter, async (req, res) => {
-  const { screenshot, consoleLogs, networkLogs, url } = req.body
-
-  if (!url) {
-    return res.status(400).json({ success: false, error: 'url is required' })
-  }
-
-  try {
-    const suggestion = await analyzeBug({ screenshot, consoleLogs, networkLogs, url })
-    res.json({ success: true, suggestion })
-  } catch (error) {
-    console.error('[/analyze-bug]', error.message)
-    res.status(500).json({ success: false, error: error.message })
-  }
+  // Mock response for Offline Mode
+  res.json({ success: true, status: "success", analysis: "IA Desactivada", suggestion: "IA Desactivada" })
 })
 
 // ─── Reports API ──────────────────────────────────────────────────────────────
@@ -124,7 +113,7 @@ app.delete('/api/report/:id', requireAuth, async (req, res) => {
 
 // ─── Send Email Report ────────────────────────────────────────────────────────
 
-app.post('/send-report', sendReportLimiter, async (req, res) => {
+app.post('/send-report', requireAuth, sendReportLimiter, async (req, res) => {
   const payload = req.body
 
   if (!payload.email) return res.status(400).json({ success: false, error: 'email is required' })
@@ -151,22 +140,20 @@ app.post('/send-report', sendReportLimiter, async (req, res) => {
     const bugId = await saveReport(payload)
     const reportUrl = `${req.protocol}://${req.get('host')}/report/${bugId}`
 
-    // 2. Send Email with Link
-    await sendBugReport({
-      to: payload.email,
-      title: payload.title,
-      notes: payload.notes,
-      aiSuggestion: payload.aiSuggestion,
-      screenshotBase64: payload.screenshotBase64,
-      url: payload.url,
-      resolution: payload.resolution,
-      consoleLogs: payload.consoleLogs,
-      networkLogs: payload.networkLogs,
-      dom: payload.dom,
-      systemInfo: payload.systemInfo,
-      bugId,
-      reportUrl
-    })
+    // 2. Send Email with Link (Only if a real email was provided)
+    // NOTE: emailService.sendBugReport() is a minimalist notification (Jam.dev style):
+    // it only uses to/title/url + the generated bugId/reportUrl. The full diagnostic
+    // payload (console/network/dom/screenshot) lives in the interactive report, not the email.
+    // Do NOT add fields here expecting them in the email — they will be silently ignored.
+    if (payload.email !== 'viewer@local') {
+      await sendBugReport({
+        to: payload.email,
+        title: payload.title,
+        url: payload.url,
+        bugId,
+        reportUrl
+      })
+    }
 
     res.json({ success: true, bugId, reportUrl })
   } catch (error) {

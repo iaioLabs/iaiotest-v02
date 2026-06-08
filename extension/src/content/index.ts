@@ -14,46 +14,22 @@ import React from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import Panel from './Panel'
 
-// ─── Diagnostic Buffers ───────────────────────────────────────────────────────
+// ─── Metadata Buffers ─────────────────────────────────────────────────────────
 
-export interface LogEntry {
-  timestamp: string
-  level: 'error' | 'warn' | 'log'
-  message: string
-}
-
-export interface NetworkEntry {
-  type: string
-  url: string
-  status?: number
-  method?: string
-  error?: string
-  timestamp: string
-}
-
-const logBuffer: LogEntry[] = []
-const networkBuffer: NetworkEntry[] = []
-const MAX_LOG = 100
-const MAX_NET = 50
-
-// ─── Main World Hook Injection ────────────────────────────────────────────────
-// Now handled native via manifest.json (mainWorldHook.js) to bypass strict CSP
-
+const logBuffer: any[] = []
+const networkBuffer: any[] = []
 
 window.addEventListener('message', (event) => {
-  if (!event.data) return;
-  if (event.data.source === 'iaio-test-hook') {
-    console.log('[iaio Test Content] Received message from Main World:', event.data.type, event.data.payload);
+  if (event.source !== window || !event.data || event.data.source !== 'iaio-test-hook') return
+  const { type, payload } = event.data
+  if (type === 'LOG') {
+    logBuffer.push(payload)
+    if (logBuffer.length > 100) logBuffer.shift()
+  } else if (type === 'NETWORK') {
+    networkBuffer.push(payload)
+    if (networkBuffer.length > 100) networkBuffer.shift()
   }
-  if (event.data?.source !== 'iaio-test-hook') return;
-  if (event.data.type === 'LOG') {
-    logBuffer.push(event.data.payload);
-    if (logBuffer.length > MAX_LOG) logBuffer.shift();
-  } else if (event.data.type === 'NETWORK') {
-    networkBuffer.push(event.data.payload);
-    if (networkBuffer.length > MAX_NET) networkBuffer.shift();
-  }
-});
+})
 
 // ─── Metadata Helper ──────────────────────────────────────────────────────────
 
@@ -61,16 +37,8 @@ function collectMetadata() {
   return {
     url: window.location.href,
     resolution: `${window.screen.width}x${window.screen.height}`,
-    // Strings for AI analysis (error + warn only, failed network only)
-    consoleLogs: logBuffer
-      .filter((l) => l.level !== 'log')
-      .map((l) => `[${l.timestamp}] [${l.level.toUpperCase()}] ${l.message}`)
-      .join('\n'),
-    networkLogs: networkBuffer
-      .filter((n) => !n.status || n.status >= 400)
-      .map((n) => `[${n.timestamp}] ${n.type} ${n.method ?? ''} ${n.url} → ${n.status ?? n.error ?? ''}`)
-      .join('\n'),
-    // Structured arrays for the DevTools UI tabs
+    consoleLogs: '',
+    networkLogs: '',
     consoleEntries: [...logBuffer],
     networkEntries: [...networkBuffer],
     dom: document.documentElement.outerHTML,
@@ -98,7 +66,6 @@ function openPanel() {
 
   panelRoot = createRoot(panelContainer)
   const metadataObj = collectMetadata();
-  console.log('[iaio Test] Opening panel with metadata:', metadataObj);
 
   panelRoot.render(
     React.createElement(Panel, {
@@ -119,16 +86,6 @@ function closePanel() {
 
 // ─── Floating Button ──────────────────────────────────────────────────────────
 
-function injectFonts() {
-  if (document.getElementById('iaio-fonts')) return
-  const link = document.createElement('link')
-  link.id = 'iaio-fonts'
-  link.rel = 'stylesheet'
-  link.href =
-    'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap'
-  document.head.appendChild(link)
-}
-
 function injectButton() {
   if (document.getElementById('iaio-floating-btn')) return
 
@@ -142,17 +99,14 @@ function injectButton() {
       z-index: 2147483646;
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 10px 18px;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
       background: #080d1a;
       border: 1px solid rgba(0,240,255,0.35);
-      border-radius: 30px;
+      border-radius: 50%;
       cursor: pointer;
-      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-      font-weight: 700;
-      font-size: 14px;
-      color: #00f0ff;
-      box-shadow: 0 0 20px rgba(0,240,255,0.12), 0 8px 32px rgba(0,0,0,0.5);
+      box-shadow: 0 0 24px rgba(0,240,255,0.15), 0 8px 32px rgba(0,0,0,0.5);
       transition: transform 0.25s cubic-bezier(0.175,0.885,0.32,1.275),
                   border-color 0.2s, box-shadow 0.2s;
       user-select: none;
@@ -160,12 +114,9 @@ function injectButton() {
       -webkit-backdrop-filter: blur(12px);
     }
     #iaio-floating-btn:hover {
-      transform: translateY(-3px) scale(1.05);
+      transform: translateY(-4px) scale(1.08);
       border-color: rgba(0,240,255,0.7);
-      box-shadow: 0 0 32px rgba(0,240,255,0.25), 0 12px 40px rgba(0,0,0,0.6);
-    }
-    #iaio-floating-btn:active {
-      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 0 32px rgba(0,240,255,0.3), 0 12px 40px rgba(0,0,0,0.6);
     }
     #iaio-floating-btn svg {
       flex-shrink: 0;
@@ -177,20 +128,19 @@ function injectButton() {
   btn.id = 'iaio-floating-btn'
   btn.setAttribute('aria-label', 'Report bug with iaio Test')
   btn.innerHTML = `
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#00f0ff" stroke-width="2" stroke-linejoin="round"/>
-      <path d="M2 17L12 22L22 17" stroke="#00f0ff" stroke-width="2" stroke-linejoin="round"/>
-      <path d="M2 12L12 17L22 12" stroke="#00f0ff" stroke-width="2" stroke-linejoin="round"/>
+    <svg viewBox="0 0 100 100" width="28" height="28" xmlns="http://www.w3.org/2000/svg">
+      <g>
+        <line x1="10" y1="40" x2="40" y2="40" stroke="#64748B" stroke-width="8" stroke-linecap="round" />
+        <line x1="5" y1="55" x2="35" y2="55" stroke="#7C3AED" stroke-width="8" stroke-linecap="round" />
+        <line x1="10" y1="70" x2="40" y2="70" stroke="#64748B" stroke-width="8" stroke-linecap="round" />
+      </g>
+      <path d="M45 55 L60 70 L90 30" stroke="#10B981" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round" />
     </svg>
-    <span>iaio</span>
   `
 
   btn.addEventListener('click', () => {
-    if (isPanelOpen) {
-      closePanel()
-    } else {
-      openPanel()
-    }
+    if (isPanelOpen) closePanel()
+    else openPanel()
   })
 
   document.body.appendChild(btn)
@@ -269,8 +219,17 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
+function injectWebAccessibleScript() {
+  const script = document.createElement('script')
+  script.src = chrome.runtime.getURL('inject.js')
+  script.onload = () => script.remove()
+  ;(document.head || document.documentElement).appendChild(script)
+}
+
+// Inject immediately to catch early console logs
+injectWebAccessibleScript()
+
 function init() {
-  injectFonts()
   injectButton()
 }
 
@@ -280,5 +239,4 @@ if (document.readyState === 'loading') {
   init()
 }
 (function () {
-  console.info('[iaio Test] Main world hook successfully loaded and running.');
 })();

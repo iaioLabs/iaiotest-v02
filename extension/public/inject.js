@@ -2,7 +2,6 @@
     const MAX_LOG = 100;
     const MAX_NET = 50;
 
-    console.info('[iaio Test] Main world hook successfully loaded and running in MAIN world.');
 
     function formatArgs(args) {
         return args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');

@@ -30,6 +30,8 @@ out/
 .env.production.local
 *.pem
 secrets.js
+# Extension signing keys (RSA keypair for stable extension ID)
+extension/.keys/
 
 # OS metadata
 .DS_Store
@@ -42,6 +44,11 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# AI Agent local artifacts (Cline, Claude Code local settings, etc.)
+.clinedoc/
+.clinerules
+.claude/settings.local.json
 
 # Optional npm cache and temp files
 .npm
