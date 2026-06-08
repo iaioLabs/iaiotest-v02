@@ -14,46 +14,22 @@ import React from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import Panel from './Panel'
 
-// ─── Diagnostic Buffers ───────────────────────────────────────────────────────
+// ─── Metadata Buffers ─────────────────────────────────────────────────────────
 
-export interface LogEntry {
-  timestamp: string
-  level: 'error' | 'warn' | 'log'
-  message: string
-}
-
-export interface NetworkEntry {
-  type: string
-  url: string
-  status?: number
-  method?: string
-  error?: string
-  timestamp: string
-}
-
-const logBuffer: LogEntry[] = []
-const networkBuffer: NetworkEntry[] = []
-const MAX_LOG = 100
-const MAX_NET = 50
-
-// ─── Main World Hook Injection ────────────────────────────────────────────────
-// Now handled native via manifest.json (mainWorldHook.js) to bypass strict CSP
-
+const logBuffer: any[] = []
+const networkBuffer: any[] = []
 
 window.addEventListener('message', (event) => {
-  if (!event.data) return;
-  if (event.data.source === 'iaio-test-hook') {
-    // Message received from Main World
+  if (event.source !== window || !event.data || event.data.source !== 'iaio-test-hook') return
+  const { type, payload } = event.data
+  if (type === 'LOG') {
+    logBuffer.push(payload)
+    if (logBuffer.length > 100) logBuffer.shift()
+  } else if (type === 'NETWORK') {
+    networkBuffer.push(payload)
+    if (networkBuffer.length > 100) networkBuffer.shift()
   }
-  if (event.data?.source !== 'iaio-test-hook') return;
-  if (event.data.type === 'LOG') {
-    logBuffer.push(event.data.payload);
-    if (logBuffer.length > MAX_LOG) logBuffer.shift();
-  } else if (event.data.type === 'NETWORK') {
-    networkBuffer.push(event.data.payload);
-    if (networkBuffer.length > MAX_NET) networkBuffer.shift();
-  }
-});
+})
 
 // ─── Metadata Helper ──────────────────────────────────────────────────────────
 
@@ -61,16 +37,8 @@ function collectMetadata() {
   return {
     url: window.location.href,
     resolution: `${window.screen.width}x${window.screen.height}`,
-    // Strings for AI analysis (error + warn only, failed network only)
-    consoleLogs: logBuffer
-      .filter((l) => l.level !== 'log')
-      .map((l) => `[${l.timestamp}] [${l.level.toUpperCase()}] ${l.message}`)
-      .join('\n'),
-    networkLogs: networkBuffer
-      .filter((n) => !n.status || n.status >= 400)
-      .map((n) => `[${n.timestamp}] ${n.type} ${n.method ?? ''} ${n.url} → ${n.status ?? n.error ?? ''}`)
-      .join('\n'),
-    // Structured arrays for the DevTools UI tabs
+    consoleLogs: '',
+    networkLogs: '',
     consoleEntries: [...logBuffer],
     networkEntries: [...networkBuffer],
     dom: document.documentElement.outerHTML,
@@ -117,16 +85,6 @@ function closePanel() {
 }
 
 // ─── Floating Button ──────────────────────────────────────────────────────────
-
-function injectFonts() {
-  if (document.getElementById('iaio-fonts')) return
-  const link = document.createElement('link')
-  link.id = 'iaio-fonts'
-  link.rel = 'stylesheet'
-  link.href =
-    'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap'
-  document.head.appendChild(link)
-}
 
 function injectButton() {
   if (document.getElementById('iaio-floating-btn')) return
@@ -181,11 +139,8 @@ function injectButton() {
   `
 
   btn.addEventListener('click', () => {
-    if (isPanelOpen) {
-      closePanel()
-    } else {
-      openPanel()
-    }
+    if (isPanelOpen) closePanel()
+    else openPanel()
   })
 
   document.body.appendChild(btn)
@@ -264,8 +219,17 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
+function injectWebAccessibleScript() {
+  const script = document.createElement('script')
+  script.src = chrome.runtime.getURL('inject.js')
+  script.onload = () => script.remove()
+  ;(document.head || document.documentElement).appendChild(script)
+}
+
+// Inject immediately to catch early console logs
+injectWebAccessibleScript()
+
 function init() {
-  injectFonts()
   injectButton()
 }
 

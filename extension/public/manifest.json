@@ -1,18 +1,17 @@
 {
   "manifest_version": 3,
   "name": "iaio Test",
-  "version": "2.3.0",
-  "description": "AI-powered bug capture & Jira reporting by iaio Labs.",
+  "version": "2.6.2",
+  "description": "IAIO Labs: Herramienta definitiva para QA. Captura reportes con logs de consola, red y DOM en tu dashboard propio.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAt/V9/WqiwrQT7TfiHf+AXq8cVK2cLx1voXAABXmjio8XM+X/Bqj+5dq3kp8dJT+hhcoxXk0GtHgRZN9nX93ptfMdrRrEOpOZwP/Uns+xPSySkpZIiuBCv7tLIXaIRSgl0fRheP9CYkQ4ggeYDy1aQ7TaiGg2kVlver+i5crOxCDeo+807ThCM+AYyuJ0vK1HoJzrAqoGNURi4LtDhgsto0cMjMauuI3699XvsXHUgkfNmhd+5oZKSUsNko4xHDWXV2KuoEHOB9/zhFuGd6LaWf8P47cIHfbfeK6Uuj0HUerqCR5cBEsBY/k0ZfiPoZ8mCPBUkkn5TEL2xvkUhTPJnQIDAQAB",
   "permissions": [
     "activeTab",
-    "scripting",
     "storage",
-    "tabs",
-    "identity",
-    "identity.email"
+    "identity"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "<all_urls>",
+    "https://oojifvsjhuwixqjvraqg.supabase.co/*"
   ],
   "background": {
     "service_worker": "src/background/index.js",
@@ -24,25 +23,17 @@
         "<all_urls>"
       ],
       "js": [
-        "mainWorldHook.js"
-      ],
-      "run_at": "document_start",
-      "world": "MAIN"
-    },
-    {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
         "src/content/index.js"
       ],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
       "resources": [
-        "assets/*"
+        "assets/*",
+        "inject.js",
+        "viewer/*"
       ],
       "matches": [
         "<all_urls>"
@@ -54,9 +45,17 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
+  "action": {
+    "default_title": "iaio Test",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
+  },
   "oauth2": {
-    "client_id": "752859870848-b2clugscrhq6rqtmd5hdmf0rv592caha.apps.googleusercontent.com",
+    "client_id": "752859870848-mdu7j86pd868slbc9p2akg9m0gpcs0uv.apps.googleusercontent.com",
     "scopes": [
+      "openid",
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile"
     ]
